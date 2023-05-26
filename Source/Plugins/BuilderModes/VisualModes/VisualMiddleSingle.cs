@@ -139,31 +139,76 @@ namespace CodeImp.DoomBuilder.BuilderModes
 			// the values are stored in a TexturePlane)
 			// NOTE: I use a small bias for the floor height, because if the difference in
 			// height is 0 then the TexturePlane doesn't work!
-			TexturePlane tp = new TexturePlane();
-			double floorbias = (Sidedef.Sector.CeilHeight == Sidedef.Sector.FloorHeight) ? 1.0 : 0.0;
-			if(Sidedef.Line.IsFlagSet(General.Map.Config.PegMidtextureFlag))
+			Vector3D vlt, vlb, vrt, vrb;
+			Vector2D tlt, tlb, trt, trb;
+			double texturevpeg = 0;
+			double floorbias = (Sidedef.Sector.CeilHeight == Sidedef.Sector.FloorHeight) ? 1.0f : 0.0f;
+
+			bool lowerunpegged = Sidedef.Line.IsFlagSet(General.Map.Config.LowerUnpeggedFlag);
+			bool nomidtextureskew = Sidedef.Line.IsFlagSet(General.Map.Config.NoMidtextureSkewFlag);
+
+			if (lowerunpegged)
 			{
-				// When peg midtexture is set, the middle texture is bound to the bottom
-				tp.tlt.y = tsz.y - (Sidedef.Sector.CeilHeight - Sidedef.Sector.FloorHeight);
+				// When lower unpegged is set, the middle texture is bound to the bottom
+				if (!nomidtextureskew)
+				{
+					texturevpeg = tsz.y - (sd.Ceiling.plane.GetZ(vl) - sd.Floor.plane.GetZ(vl));
+				}
+				else
+				{
+					texturevpeg = tsz.y - (Sidedef.Sector.CeilHeight - Sidedef.Sector.FloorHeight);
+				}
 			}
-			tp.trb.x = tp.tlt.x + Math.Round(Sidedef.Line.Length); //mxd. (G)ZDoom snaps texture coordinates to integral linedef length
-			tp.trb.y = tp.tlt.y + (Sidedef.Sector.CeilHeight - (Sidedef.Sector.FloorHeight + floorbias));
-			
+
+			tlt.x = tlb.x = 0;
+			trt.x = trb.x = Sidedef.Line.Length;
+			tlt.y = trt.y = texturevpeg;
+			tlb.y = trb.y = texturevpeg + (Sidedef.Sector.CeilHeight - (Sidedef.Sector.FloorHeight + floorbias));
+
+			// Texture correction for slopes
+			if (nomidtextureskew)
+			{
+				tlt.y += Sidedef.Sector.CeilHeight - sd.Ceiling.plane.GetZ(vl);
+				trt.y += Sidedef.Sector.CeilHeight - sd.Ceiling.plane.GetZ(vr);
+				tlb.y += Sidedef.Sector.FloorHeight - sd.Floor.plane.GetZ(vl);
+				trb.y += Sidedef.Sector.FloorHeight - sd.Floor.plane.GetZ(vr);
+			}
+			else if (lowerunpegged)
+			{
+				tlt.y = tlb.y + sd.Floor.plane.GetZ(vl) - sd.Ceiling.plane.GetZ(vl);
+				trt.y = trb.y + sd.Floor.plane.GetZ(vr) - sd.Ceiling.plane.GetZ(vr);
+			}
+			else
+			{
+				tlb.y = tlt.y - (sd.Floor.plane.GetZ(vl) - sd.Ceiling.plane.GetZ(vl));
+				trb.y = trt.y - (sd.Floor.plane.GetZ(vr) - sd.Ceiling.plane.GetZ(vr));
+			}
+
 			// Apply texture offset
-			tp.tlt += tof;
-			tp.trb += tof;
-			
+			tlt += tof;
+			tlb += tof;
+			trb += tof;
+			trt += tof;
+
 			// Transform pixel coordinates to texture coordinates
-			tp.tlt /= tsz;
-			tp.trb /= tsz;
-			
-			// Left top and right bottom of the geometry that
-			tp.vlt = new Vector3D(vl.x, vl.y, Sidedef.Sector.CeilHeight);
-			tp.vrb = new Vector3D(vr.x, vr.y, Sidedef.Sector.FloorHeight + floorbias);
-			
-			// Make the right-top coordinates
-			tp.trt = new Vector2D(tp.trb.x, tp.tlt.y);
-			tp.vrt = new Vector3D(tp.vrb.x, tp.vrb.y, tp.vlt.z);
+			tlt /= tsz;
+			tlb /= tsz;
+			trb /= tsz;
+			trt /= tsz;
+
+			// Geometry coordinates
+			vlt = new Vector3D(vl.x, vl.y, sd.Ceiling.plane.GetZ(vl));
+			vlb = new Vector3D(vl.x, vl.y, sd.Floor.plane.GetZ(vl) + floorbias);
+			vrb = new Vector3D(vr.x, vr.y, sd.Floor.plane.GetZ(vr));
+			vrt = new Vector3D(vr.x, vr.y, sd.Ceiling.plane.GetZ(vr));
+
+			TexturePlane tp = new TexturePlane();
+			tp.tlt = lowerunpegged ? tlb : tlt;
+			tp.trb = trb;
+			tp.trt = trt;
+			tp.vlt = lowerunpegged ? vlb : vlt;
+			tp.vrb = vrb;
+			tp.vrt = vrt;
 
 			// Get ceiling and floor heights
 			double fl = sd.Floor.plane.GetZ(vl);

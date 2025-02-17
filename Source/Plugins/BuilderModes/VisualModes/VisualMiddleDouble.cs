@@ -158,7 +158,6 @@ namespace CodeImp.DoomBuilder.BuilderModes
 			// height is 0 then the TexturePlane doesn't work!
 			Vector3D vlt, vlb, vrt, vrb;
 			Vector2D tlt, tlb, trt, trb;
-			double floorbias = (Sidedef.Sector.CeilHeight == Sidedef.Sector.FloorHeight) ? 1.0 : 0.0;
 			double geotop = Math.Min(Sidedef.Sector.CeilHeight, Sidedef.Other.Sector.CeilHeight);
 			double geobottom = Math.Max(Sidedef.Sector.FloorHeight, Sidedef.Other.Sector.FloorHeight);
 			double geoplanetop = Math.Min(sd.Ceiling.plane.GetZ(vl), osd.Ceiling.plane.GetZ(vl));
@@ -223,13 +222,13 @@ namespace CodeImp.DoomBuilder.BuilderModes
 			else
 				texturevpeg = textop - h;
 
+			// If the difference in height is zero, TexturePlane works funkily
+			double leftfloorbias = Math.Abs(h - l) <= double.Epsilon ? 1.0 : 0.0;
+
 			tlt.x = tlb.x = tof.x;
 			trt.x = trb.x = tof.x + Sidedef.Line.Length;
 			tlt.y = trt.y = texturevpeg;
-			tlb.y = trb.y = texturevpeg + h - (l + floorbias);
-
-			double rh = h;
-			double rl = l;
+			tlb.y = trb.y = texturevpeg + h - (l + leftfloorbias);
 
 			// Correct to account for slopes
 			double midtextureslant;
@@ -256,8 +255,8 @@ namespace CodeImp.DoomBuilder.BuilderModes
 						  : osd.Floor.plane.GetZ(vr) - osd.Floor.plane.GetZ(vl));
 
 			// Texture stuff
-			rh = Math.Min(highcut, newtextop);
-			rl = Math.Max(newtexbottom, lowcut);
+			double rh = Math.Min(highcut, newtextop);
+			double rl = Math.Max(newtexbottom, lowcut);
 
 			double newtexturevpeg;
 
@@ -267,8 +266,11 @@ namespace CodeImp.DoomBuilder.BuilderModes
 			else
 				newtexturevpeg = newtextop - rh;
 
+			// If the difference in height is zero, TexturePlane works funkily
+			double rightfloorbias = Math.Abs(rh - rl) <= double.Epsilon ? 1.0 : 0.0;
+
 			trt.y = newtexturevpeg;
-			trb.y = newtexturevpeg + rh - (rl + floorbias);
+			trb.y = newtexturevpeg + rh - (rl + rightfloorbias);
 			
 			// Transform pixel coordinates to texture coordinates
 			tlt /= tsz;
@@ -278,8 +280,8 @@ namespace CodeImp.DoomBuilder.BuilderModes
 
 			// Geometry coordinates
 			vlt = new Vector3D(vl.x, vl.y, h);
-			vlb = new Vector3D(vl.x, vl.y, l);
-			vrb = new Vector3D(vr.x, vr.y, rl);
+			vlb = new Vector3D(vl.x, vl.y, l + leftfloorbias);
+			vrb = new Vector3D(vr.x, vr.y, rl + rightfloorbias);
 			vrt = new Vector3D(vr.x, vr.y, rh);
 
 			TexturePlane tp = new TexturePlane();

@@ -33,6 +33,7 @@ using CodeImp.DoomBuilder.Config;
 using CodeImp.DoomBuilder.GZBuilder.Data;
 using CodeImp.DoomBuilder.Types;
 using CodeImp.DoomBuilder.Data;
+using System.Drawing;
 
 #endregion
 
@@ -1068,6 +1069,24 @@ namespace CodeImp.DoomBuilder.BuilderModes
 						break;
 					}
 
+					// ========== Create Anchor Based Slope (777) (see https://ringracers.miraheze.org/wiki/Create_Anchor-Based_Slope) =========
+					case "anchor_slope":
+						Sector sector;
+
+						if (((l.Args[1] & 4) > 0) && l.Back != null)
+							sector = l.Back.Sector;
+						else if (l.Front != null)
+							sector = l.Front.Sector;
+						else
+							// No valid sector found, get me outta here!
+							break;
+
+						bool slopeFloor = (l.Args[0] & 1) > 0;
+						bool slopeCeiling = (l.Args[0] & 2) > 0;
+
+						MakeThingAnchorSlope(sector, slopeFloor, slopeCeiling);
+						break;
+
 					// ========== Sector 3D floor (160) (see http://zdoom.org/wiki/Sector_Set3dFloor) ==========
 					case "sector_set3dfloor":
 						if(l.Front != null)
@@ -1396,6 +1415,124 @@ namespace CodeImp.DoomBuilder.BuilderModes
 			vertexslopehandles.Clear();
 
 			BuildSlopeHandles(General.Map.Map.Sectors.ToList());
+		}
+
+		private void MakeThingAnchorSlope(Sector sector, bool floor, bool ceiling)
+		{
+			if (!floor && !ceiling)
+				// nothing needs to be sloped
+				return;
+			
+			// find our slope anchors
+			EffectThingAnchorSlope.Anchor[] anchors = new EffectThingAnchorSlope.Anchor[3];
+			double[] distances = new double[] { double.MaxValue, double.MaxValue, double.MaxValue };
+			int anchorsFound = 0;
+
+			foreach (Sidedef sidedef in sector.Sidedefs)
+			{
+				Vertex v = sidedef.IsFront ? sidedef.Line.End : sidedef.Line.Start;
+
+				double distance;
+				Thing anchor = FindClosestAnchorTo(v.Position, out distance);
+
+				if (anchor != null)
+				{
+					if (anchorsFound < 3)
+					{
+						// simply add the anchor
+						anchors[anchorsFound] = new EffectThingAnchorSlope.Anchor
+						{
+							thing = anchor,
+							snappedPosition = v.Position,
+						};
+						distances[anchorsFound] = distance;
+						anchorsFound++;
+					}
+					else
+					{
+						// check if we have room
+						int index = Array.FindIndex(distances, otherDistance => otherDistance > distance);
+
+						if (index >= 0)
+						{
+							// we can add the anchor here
+							anchors[index] = new EffectThingAnchorSlope.Anchor
+							{
+								thing = anchor,
+								snappedPosition = v.Position
+							};
+							distances[index] = distance;
+						}
+					}
+				}
+			}
+
+			// reutrn early if we failed to fill it up
+			if (anchorsFound >= 3)
+			{
+				SectorData sd = GetSectorData(sector);
+
+				if (floor)
+					sd.AddEffectThingAnchorSlope(anchors.ToList(), true);
+				else if (ceiling)
+					sd.AddEffectThingAnchorSlope(anchors.ToList(), false);
+			}
+		}
+
+		private Thing FindClosestAnchorTo(Vector2D pos, out double distance)
+		{
+			return FindClosestAnchorTo(pos, 256, out distance);
+		}
+
+		/// <summary>
+		/// Tries to find the closest anchor to a point.
+		/// </summary>
+		/// <param name="pos">The position of the vertex.</param>
+		/// <param name="allowedError">
+		/// The allowed error an anchor can be from its vertex.
+		/// </param>
+		/// <returns>The thing anchor, or <code>null</code> if none was found.</returns>
+		private Thing FindClosestAnchorTo(Vector2D pos, float allowedError, out double distance)
+		{
+			double closestDistance = 0;
+			Thing closestAnchor = null;
+			
+			// NOTE: limiting search by this bounding box
+			RectangleF bbox = new RectangleF(
+				(float) pos.x - allowedError,
+				(float) pos.y - allowedError,
+				allowedError,
+				allowedError
+			);
+
+			// Find closest anchors
+			foreach (VisualBlockEntry block in blockmap.GetBlocks(bbox))
+			{
+				foreach (Thing t in block.Things)
+				{
+					if (t.Type != 777) continue;
+
+					if (closestAnchor == null)
+					{
+						// implicitly add anchor as first
+						closestAnchor = t;
+						closestDistance = Vector2D.DistanceSq(t.Position, pos);
+					}
+					else
+					{
+						// check if our distance is smaller
+						double nextDistance = Vector2D.DistanceSq(t.Position, pos);
+						if (nextDistance < closestDistance)
+						{
+							closestAnchor = t;
+							closestDistance = nextDistance;
+						}
+					}
+				}
+			}
+
+			distance = closestDistance;
+			return closestAnchor;
 		}
 
 		private void BuildSlopeHandles(List<Sector> sectors)

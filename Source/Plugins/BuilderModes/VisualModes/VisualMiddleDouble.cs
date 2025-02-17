@@ -38,6 +38,7 @@ namespace CodeImp.DoomBuilder.BuilderModes
 
 		#region ================== Variables
 
+		private int repetitions;
 		private bool repeatmidtex;
 		private Plane topclipplane;
 		private Plane bottomclipplane;
@@ -45,6 +46,8 @@ namespace CodeImp.DoomBuilder.BuilderModes
 		#endregion
 
 		#region ================== Properties
+
+		public bool RepeatIndefinitely { get { return repeatmidtex; } }
 
 		#endregion
 
@@ -425,11 +428,11 @@ namespace CodeImp.DoomBuilder.BuilderModes
                 % imageWidth);
 
             int oy;
-            if (repeatmidtex)
+            if (RepeatIndefinitely)
             {
                 bool pegbottom = Sidedef.Line.IsFlagSet(General.Map.Config.PegMidtextureFlag);
-				double zoffset = (pegbottom ? Sidedef.Sector.FloorHeight : Sidedef.Sector.CeilHeight);
-                oy = (int)Math.Floor(((pickintersect.z - zoffset) * UniFields.GetFloat(Sidedef.Fields, "scaley_mid", 1.0f) / texscale.y
+				double zoffset = (pegbottom ? bottomclipplane.GetZ(pickintersect) : topclipplane.GetZ(pickintersect));
+                oy = (int)Math.Ceiling(((pickintersect.z - zoffset) * UniFields.GetFloat(Sidedef.Fields, "scaley_mid", 1.0f) / texscale.y
                     - ((Sidedef.OffsetY - UniFields.GetFloat(Sidedef.Fields, "offsety_mid")) / imgscale.y))
                     % imageHeight);
             }

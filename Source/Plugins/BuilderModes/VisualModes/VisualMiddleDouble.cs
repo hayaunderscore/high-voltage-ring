@@ -47,7 +47,7 @@ namespace CodeImp.DoomBuilder.BuilderModes
 
 		#region ================== Properties
 
-		public bool RepeatIndefinitely { get { return repeatmidtex; } }
+		private bool RepeatIndefinitely { get { return repeatmidtex && repetitions == 1; } }
 
 		#endregion
 

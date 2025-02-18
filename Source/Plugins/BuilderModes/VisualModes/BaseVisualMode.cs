@@ -1084,7 +1084,7 @@ namespace CodeImp.DoomBuilder.BuilderModes
 						bool slopeFloor = (l.Args[0] & 1) > 0;
 						bool slopeCeiling = (l.Args[0] & 2) > 0;
 
-						MakeThingAnchorSlope(sector, slopeFloor, slopeCeiling);
+						MakeThingAnchorSlope(sector, l.Args[2], slopeFloor, slopeCeiling);
 						break;
 
 					// ========== Sector 3D floor (160) (see http://zdoom.org/wiki/Sector_Set3dFloor) ==========
@@ -1417,7 +1417,7 @@ namespace CodeImp.DoomBuilder.BuilderModes
 			BuildSlopeHandles(General.Map.Map.Sectors.ToList());
 		}
 
-		private void MakeThingAnchorSlope(Sector sector, bool floor, bool ceiling)
+		private void MakeThingAnchorSlope(Sector sector, int group, bool floor, bool ceiling)
 		{
 			if (!floor && !ceiling)
 				// nothing needs to be sloped
@@ -1433,7 +1433,7 @@ namespace CodeImp.DoomBuilder.BuilderModes
 				Vertex v = sidedef.IsFront ? sidedef.Line.End : sidedef.Line.Start;
 
 				double distance;
-				Thing anchor = FindClosestAnchorTo(v.Position, out distance);
+				Thing anchor = FindClosestAnchorTo(v.Position, group, out distance);
 
 				if (anchor != null)
 				{
@@ -1451,7 +1451,7 @@ namespace CodeImp.DoomBuilder.BuilderModes
 					else
 					{
 						// check if we have room
-						int index = Array.FindIndex(distances, otherDistance => otherDistance > distance);
+						int index = Array.FindIndex(distances, otherDistance => otherDistance >= distance);
 
 						if (index >= 0)
 						{
@@ -1470,6 +1470,13 @@ namespace CodeImp.DoomBuilder.BuilderModes
 			// reutrn early if we failed to fill it up
 			if (anchorsFound >= 3)
 			{
+				// make sure our things update our sectors
+				foreach (EffectThingAnchorSlope.Anchor anchor in anchors)
+				{
+					ThingData thing = GetThingData(anchor.thing);
+					thing.AddUpdateSector(sector, true);
+				}
+
 				SectorData sd = GetSectorData(sector);
 
 				if (floor)
@@ -1479,20 +1486,21 @@ namespace CodeImp.DoomBuilder.BuilderModes
 			}
 		}
 
-		private Thing FindClosestAnchorTo(Vector2D pos, out double distance)
+		private Thing FindClosestAnchorTo(Vector2D pos, int group, out double distance)
 		{
-			return FindClosestAnchorTo(pos, 256, out distance);
+			return FindClosestAnchorTo(pos, group, 256, out distance);
 		}
 
 		/// <summary>
 		/// Tries to find the closest anchor to a point.
 		/// </summary>
 		/// <param name="pos">The position of the vertex.</param>
+		/// <param name="group">The group to check</param>
 		/// <param name="allowedError">
 		/// The allowed error an anchor can be from its vertex.
 		/// </param>
 		/// <returns>The thing anchor, or <code>null</code> if none was found.</returns>
-		private Thing FindClosestAnchorTo(Vector2D pos, float allowedError, out double distance)
+		private Thing FindClosestAnchorTo(Vector2D pos, int group, float allowedError, out double distance)
 		{
 			double closestDistance = 0;
 			Thing closestAnchor = null;
@@ -1511,6 +1519,7 @@ namespace CodeImp.DoomBuilder.BuilderModes
 				foreach (Thing t in block.Things)
 				{
 					if (t.Type != 777) continue;
+					if (t.ThingArgs[0] != group) continue;
 
 					if (closestAnchor == null)
 					{

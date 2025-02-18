@@ -15,6 +15,25 @@ namespace CodeImp.DoomBuilder.BuilderModes
 		{
 			public Thing thing;
 			public Vector2D snappedPosition;
+
+			/// <summary>
+			/// Gets the final, computed position of the anchor.
+			/// 
+			/// May throw a <see cref="System.NullReferenceException"/> if
+			/// <code>thing</code> is <code>null</code>.
+			/// </summary>
+			/// <returns>The anchor position.</returns>
+			public Vector3D GetPosition()
+			{
+				Vector3D position = snappedPosition;
+				position.z = thing.Position.z;
+
+				if (thing.Sector != null)
+					position.z += thing.Sector.FloorHeight;
+				
+				return position;
+
+			}
 		}
 
 		// Anchors used to create this effect
@@ -41,17 +60,7 @@ namespace CodeImp.DoomBuilder.BuilderModes
 		public override void Update()
 		{
 			// Create vertices in clockwise order
-			Vector3D[] verts = anchors
-				.Select(anchor => {
-					Vector3D position = anchor.snappedPosition;
-					position.z = anchor.thing.Position.z;
-
-					if (anchor.thing.Sector != null)
-						position.z += anchor.thing.Sector.FloorHeight;
-					
-					return position;
-				})
-				.ToArray();
+			Vector3D[] verts = anchors.Select(anchor => anchor.GetPosition()).ToArray();
 			
 			// Make new plane
 			if(slopefloor)

@@ -1424,47 +1424,35 @@ namespace CodeImp.DoomBuilder.BuilderModes
 				return;
 			
 			// find our slope anchors
+			List<EffectThingAnchorSlope.Anchor> possibleAnchors = sector.Sidedefs
+				.Select(sidedef => sidedef.IsFront ? sidedef.Line.End : sidedef.Line.Start)
+				.Select(vertex => {
+					double distance;
+					Thing anchor = FindClosestAnchorTo(vertex, group, sector, out distance);
+
+					return new EffectThingAnchorSlope.Anchor
+					{
+						thing = anchor,
+						closeness = distance,
+						snappedPosition = vertex.Position,
+					};
+				})
+				.ToList();
+
+			// sort by distance
+			possibleAnchors.Sort((a, b) => a.closeness.CompareTo(b.closeness));
+
+			// remove all duplicates
 			EffectThingAnchorSlope.Anchor[] anchors = new EffectThingAnchorSlope.Anchor[3];
-			double[] distances = new double[] { double.MaxValue, double.MaxValue, double.MaxValue };
 			int anchorsFound = 0;
 
-			foreach (Sidedef sidedef in sector.Sidedefs)
+			foreach (EffectThingAnchorSlope.Anchor anchor in possibleAnchors)
 			{
-				Vertex v = sidedef.IsFront ? sidedef.Line.End : sidedef.Line.Start;
+				if (!anchors.Any(otherAnchor => otherAnchor.thing == anchor.thing))
+					anchors[anchorsFound++] = anchor;
 
-				double distance;
-				Thing anchor = FindClosestAnchorTo(v.Position, group, out distance);
-
-				if (anchor != null)
-				{
-					if (anchorsFound < 3)
-					{
-						// simply add the anchor
-						anchors[anchorsFound] = new EffectThingAnchorSlope.Anchor
-						{
-							thing = anchor,
-							snappedPosition = v.Position,
-						};
-						distances[anchorsFound] = distance;
-						anchorsFound++;
-					}
-					else
-					{
-						// check if we have room
-						int index = Array.FindIndex(distances, otherDistance => otherDistance >= distance);
-
-						if (index >= 0)
-						{
-							// we can add the anchor here
-							anchors[index] = new EffectThingAnchorSlope.Anchor
-							{
-								thing = anchor,
-								snappedPosition = v.Position
-							};
-							distances[index] = distance;
-						}
-					}
-				}
+				if (anchorsFound >= 3)
+					break;
 			}
 
 			// reutrn early if we failed to fill it up
@@ -1477,6 +1465,18 @@ namespace CodeImp.DoomBuilder.BuilderModes
 					thing.AddUpdateSector(sector, true);
 				}
 
+				// Preserve clockwise winding
+				Vector3D a = anchors[0].snappedPosition;
+				Vector3D b = anchors[1].snappedPosition;
+				Vector3D c = anchors[2].snappedPosition;
+
+				if (Vector3D.CrossProduct(b - a, c - a).z < 0)
+				{
+					EffectThingAnchorSlope.Anchor temp = anchors[1];
+					anchors[1] = anchors[2];
+					anchors[2] = temp;
+				}
+
 				SectorData sd = GetSectorData(sector);
 
 				if (floor)
@@ -1486,9 +1486,13 @@ namespace CodeImp.DoomBuilder.BuilderModes
 			}
 		}
 
-		private Thing FindClosestAnchorTo(Vector2D pos, int group, out double distance)
+		private Thing FindClosestAnchorTo(Vertex pos, int group, Sector sector, out double distance)
 		{
-			return FindClosestAnchorTo(pos, group, 256, out distance);
+			RectangleF bbox = sector.BBox;
+			// add some space for error
+			bbox.Inflate(256, 256);
+
+			return FindClosestAnchorTo(pos, group, bbox, out distance);
 		}
 
 		/// <summary>
@@ -1496,22 +1500,11 @@ namespace CodeImp.DoomBuilder.BuilderModes
 		/// </summary>
 		/// <param name="pos">The position of the vertex.</param>
 		/// <param name="group">The group to check</param>
-		/// <param name="allowedError">
-		/// The allowed error an anchor can be from its vertex.
-		/// </param>
 		/// <returns>The thing anchor, or <code>null</code> if none was found.</returns>
-		private Thing FindClosestAnchorTo(Vector2D pos, int group, float allowedError, out double distance)
+		private Thing FindClosestAnchorTo(Vertex pos, int group, RectangleF bbox, out double distance)
 		{
 			double closestDistance = 0;
 			Thing closestAnchor = null;
-			
-			// NOTE: limiting search by this bounding box
-			RectangleF bbox = new RectangleF(
-				(float) pos.x - allowedError,
-				(float) pos.y - allowedError,
-				allowedError,
-				allowedError
-			);
 
 			// Find closest anchors
 			foreach (VisualBlockEntry block in blockmap.GetBlocks(bbox))
@@ -1525,12 +1518,12 @@ namespace CodeImp.DoomBuilder.BuilderModes
 					{
 						// implicitly add anchor as first
 						closestAnchor = t;
-						closestDistance = Vector2D.DistanceSq(t.Position, pos);
+						closestDistance = Vector2D.DistanceSq(t.Position, pos.Position);
 					}
 					else
 					{
 						// check if our distance is smaller
-						double nextDistance = Vector2D.DistanceSq(t.Position, pos);
+						double nextDistance = Vector2D.DistanceSq(t.Position, pos.Position);
 						if (nextDistance < closestDistance)
 						{
 							closestAnchor = t;

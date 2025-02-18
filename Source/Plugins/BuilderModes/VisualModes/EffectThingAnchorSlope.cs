@@ -14,6 +14,7 @@ namespace CodeImp.DoomBuilder.BuilderModes
 		public struct Anchor
 		{
 			public Thing thing;
+			public double closeness;
 			public Vector2D snappedPosition;
 
 			/// <summary>

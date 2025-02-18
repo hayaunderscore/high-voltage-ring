@@ -23,14 +23,20 @@ namespace CodeImp.DoomBuilder.BuilderModes
 			/// May throw a <see cref="System.NullReferenceException"/> if
 			/// <code>thing</code> is <code>null</code>.
 			/// </summary>
+			/// <param name="floor">Whether or not to base the height of the vertex off the floor or ceiling</param>
 			/// <returns>The anchor position.</returns>
-			public Vector3D GetPosition()
+			public Vector3D GetPosition(bool floor)
 			{
 				Vector3D position = snappedPosition;
 				position.z = thing.Position.z;
 
 				if (thing.Sector != null)
-					position.z += thing.Sector.FloorHeight;
+				{
+					if (floor)
+						position.z += thing.Sector.FloorHeight;
+					else
+						position.z += thing.Sector.CeilHeight;
+				}
 				
 				return position;
 
@@ -61,7 +67,7 @@ namespace CodeImp.DoomBuilder.BuilderModes
 		public override void Update()
 		{
 			// Create vertices in clockwise order
-			Vector3D[] verts = anchors.Select(anchor => anchor.GetPosition()).ToArray();
+			Vector3D[] verts = anchors.Select(anchor => anchor.GetPosition(slopefloor)).ToArray();
 			
 			// Make new plane
 			if(slopefloor)

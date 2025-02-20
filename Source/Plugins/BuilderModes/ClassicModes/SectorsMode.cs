@@ -20,6 +20,7 @@ using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Diagnostics;
+using System.Linq;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.Collections.Concurrent;
@@ -32,6 +33,8 @@ using CodeImp.DoomBuilder.Map;
 using CodeImp.DoomBuilder.Rendering;
 using CodeImp.DoomBuilder.Types;
 using CodeImp.DoomBuilder.Windows;
+using System.Runtime.ExceptionServices;
+using CodeImp.DoomBuilder.BuilderModes.ClassicModes;
 
 #endregion
 
@@ -2828,6 +2831,93 @@ namespace CodeImp.DoomBuilder.BuilderModes
 			// Redraw
 			General.Map.Map.Update();
 			General.Map.IsChanged = true;
+			General.Interface.RefreshInfo();
+			General.Interface.RedrawDisplay();
+		}
+
+		[BeginAction("triangulatesectors")]
+		public void TriangulateSectors()
+		{
+			// Get selection
+			ICollection<Sector> selection = General.Map.Map.GetSelectedSectors(true);
+
+			if(selection.Count == 0 && highlighted != null && !highlighted.IsDisposed)
+				selection.Add(highlighted);
+
+			// this operation may affect thing positions
+			List<Thing> affectedthings = new List<Thing>();
+			foreach (Thing t in General.Map.Map.Things)
+				if (t.Sector != null && selection.Contains(t.Sector)) affectedthings.Add(t);
+
+			if(selection.Count == 0) 
+			{
+				General.Interface.DisplayStatus(StatusType.Warning, "This action requires a selection!");
+				return;
+			}
+
+			string humanized = selection.Count == 1 ? "sector" : "sectors";
+			General.Map.UndoRedo.CreateUndo("Triangulate " + selection.Count + " " + humanized);
+			General.Interface.DisplayStatus(StatusType.Action, "Triangulated " + selection.Count + " " + humanized);
+
+			// triangulate each sector
+			Triangulation triangulator = new Triangulation();
+			foreach (Sector sector in selection)
+			{
+				triangulator.Triangulate(sector);
+				List<DrawnVertex> vertices = triangulator.Vertices
+					.Select(v => new DrawnVertex
+					{
+						pos = v,
+						stitch = true,
+						stitchline = true,
+					})
+					.ToList();
+
+				// with our sector, apply our triangulation
+				int index = 0;
+				foreach (int vertexCount in triangulator.IslandVertices)
+				{
+					// iterate over all triangleSides on an island
+					int nextEndIndex = index + vertexCount;
+					while (index < nextEndIndex)
+					{
+						Tools.DrawLines(vertices.GetRange(index, 3).Append(vertices[index]).ToList(), false, BuilderPlug.Me.AutoAlignTextureOffsetsOnCreate);
+
+						// move to next triangle
+						index += 3;
+					}
+				}
+			}
+
+			// things may require updating
+			foreach (Thing t in affectedthings) t.DetermineSector();
+
+			// Map was changed
+			General.Map.IsChanged = true;
+			General.Map.Map.Update();
+
+			// Clear selection
+			General.Map.Map.ClearAllSelected();
+
+			if (highlighted != null && !highlighted.IsDisposed)
+				highlightasso.Set(highlighted);
+
+			// Recreate the blockmap
+			CreateBlockmap();
+
+			// Clear the cache of things that already got their sector determined
+			determinedsectorthings = new ConcurrentDictionary<Thing, bool>();
+
+			// remake labels, since our changes changed the amount of sectors in our map
+			SetupLabels();
+			UpdateSelectedLabels();
+
+			//mxd. Update
+			UpdateOverlaySurfaces();
+			UpdateEffectLabels();
+			General.Map.Renderer2D.UpdateExtraFloorFlag();
+
+			// Redraw display
 			General.Interface.RefreshInfo();
 			General.Interface.RedrawDisplay();
 		}

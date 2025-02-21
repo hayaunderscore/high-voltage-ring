@@ -129,6 +129,13 @@ namespace CodeImp.DoomBuilder.Map
 		public Sector Sector { get { return sector; } }
 		public ThingRenderMode RenderMode { get { return rendermode; } } //mxd
 		public bool IsDirectional { get { return directional; } } //mxd
+		/// <summary>
+		/// Checks if the thing is flipped.
+		/// 
+		/// Things that are flipped will render from the ceiling.
+		/// </summary>
+		/// <returns><code>true</code> if the thing is flipped.</returns>
+		public bool Flipped { get { return IsFlagSet(General.Map.Config.FlipFlag); } }
 		public bool Highlighted { get { return highlighted; } set { highlighted = value; } } //mxd
         internal int LastProcessed { get { return lastProcessed; } set { lastProcessed = value; } }
 

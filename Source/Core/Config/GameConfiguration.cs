@@ -78,6 +78,7 @@ namespace CodeImp.DoomBuilder.Config
 		private readonly string upperunpeggedflag;
 		private readonly string lowerunpeggedflag;
 		private readonly string pegmidtextureflag;
+		private readonly string flipflag;
 		private readonly bool mixtexturesflats;
 		private readonly bool generalizedactions;
 		private readonly bool generalizedeffects;
@@ -242,6 +243,7 @@ namespace CodeImp.DoomBuilder.Config
 		public string UpperUnpeggedFlag { get { return upperunpeggedflag; } }
 		public string LowerUnpeggedFlag { get { return lowerunpeggedflag; } }
 		public string PegMidtextureFlag { get { return pegmidtextureflag; } }
+		public string FlipFlag { get { return flipflag; }}
 		public bool MixTexturesFlats { get { return mixtexturesflats; } }
 		public bool GeneralizedActions { get { return generalizedactions; } }
 		public bool GeneralizedEffects { get { return generalizedeffects; } }
@@ -521,6 +523,10 @@ namespace CodeImp.DoomBuilder.Config
 				pegmidtextureflag = ((int)obj == 0) ? lowerunpeggedflag : ((int)obj).ToString(CultureInfo.InvariantCulture);
 			else
 				pegmidtextureflag = obj.ToString();
+
+			// Same thing with thing flags
+			obj = cfg.ReadSettingObject("flipflag", 0);
+			if (obj is int) flipflag = ((int)obj).ToString(CultureInfo.InvariantCulture); else flipflag = obj.ToString();
 
 			// Get texture and flat sources
 			textureranges = cfg.ReadSetting("textures", new Hashtable());

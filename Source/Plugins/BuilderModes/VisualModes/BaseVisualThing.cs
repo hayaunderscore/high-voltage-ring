@@ -212,11 +212,20 @@ namespace CodeImp.DoomBuilder.BuilderModes
 			if(Thing.Sector != null)
 			{
 				SectorData sd = mode.GetSectorData(Thing.Sector);
-				Plane floor = sd.Floor.plane; //mxd
+				Plane floor = sd.Floor.plane;
+
+				Vector3D thingpos;
+				if (Thing.Flipped)
+				{
+					thingpos = new Vector3D(Thing.Position.x, Thing.Position.y, -Thing.Position.z + sd.Ceiling.plane.GetZ(Thing.Position));
+				}
+				else
+				{
+					thingpos = new Vector3D(Thing.Position.x, Thing.Position.y, Thing.Position.z + sd.Floor.plane.GetZ(Thing.Position));
+				}
 
 				if(!info.Bright)
 				{
-					Vector3D thingpos = new Vector3D(Thing.Position.x, Thing.Position.y, Thing.Position.z + sd.Floor.plane.GetZ(Thing.Position));
 					SectorLevel level = sd.GetLevelAboveOrAt(thingpos);
 
 					//mxd. Let's use point on floor plane instead of Thing.Sector.FloorHeight;
@@ -290,7 +299,6 @@ namespace CodeImp.DoomBuilder.BuilderModes
 				//TECH: even Bright Thing frames are affected by custom fade...
 				else
 				{
-					Vector3D thingpos = new Vector3D(Thing.Position.x, Thing.Position.y, Thing.Position.z + sd.Floor.plane.GetZ(Thing.Position));
 					SectorLevel level = sd.GetLevelAboveOrAt(thingpos);
 
 					if(level != null && level.sector.FogMode > SectorFogMode.CLASSIC)
@@ -429,7 +437,7 @@ namespace CodeImp.DoomBuilder.BuilderModes
 				// Absolute Z position
 				pos.z = Thing.Position.z;
 			}
-			else if(info.Hangs)
+			else if(info.Hangs || Thing.Flipped)
 			{
 				// Hang from ceiling
 				if(Thing.Sector != null)

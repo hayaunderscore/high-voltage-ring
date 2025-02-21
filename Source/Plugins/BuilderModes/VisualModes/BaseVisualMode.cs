@@ -1071,23 +1071,7 @@ namespace CodeImp.DoomBuilder.BuilderModes
 
 					// ========== Create Anchor Based Slope (777) (see https://ringracers.miraheze.org/wiki/Create_Anchor-Based_Slope) =========
 					case "anchor_slope":
-						Sector sector;
-
-						if (((l.Args[1] & 4) > 0) && l.Back != null)
-							sector = l.Back.Sector;
-						else if (l.Front != null)
-							sector = l.Front.Sector;
-						else
-							// No valid sector found, get me outta here!
-							break;
-
-						bool slopeFloor = (l.Args[0] & 1) > 0;
-						bool slopeCeiling = (l.Args[0] & 2) > 0;
-
-						if (slopeFloor)
-							MakeThingAnchorSlope(sector, l.Args[2], true);
-						if (slopeCeiling)
-							MakeThingAnchorSlope(sector, l.Args[2], false);
+						slopelinedefpass[0].Add(l);
 						break;
 
 					// ========== Sector 3D floor (160) (see http://zdoom.org/wiki/Sector_Set3dFloor) ==========
@@ -1219,6 +1203,27 @@ namespace CodeImp.DoomBuilder.BuilderModes
 
 				switch (General.Map.Config.LinedefActions[l.Action].Id.ToLowerInvariant())
 				{
+					// ========== Create Anchor Based Slope (777) (see https://ringracers.miraheze.org/wiki/Create_Anchor-Based_Slope) =========
+					case "anchor_slope":
+						Sector sector;
+
+						if (((l.Args[1] & 4) > 0) && l.Back != null)
+							sector = l.Back.Sector;
+						else if (l.Front != null)
+							sector = l.Front.Sector;
+						else
+							// No valid sector found, get me outta here!
+							break;
+
+						bool slopeFloor = (l.Args[0] & 1) > 0;
+						bool slopeCeiling = (l.Args[0] & 2) > 0;
+
+						if (slopeFloor)
+							MakeThingAnchorSlope(sector, l.Args[2], true);
+						if (slopeCeiling)
+							MakeThingAnchorSlope(sector, l.Args[2], false);
+						break;
+	
 					// ========== Plane Align (181) (see http://zdoom.org/wiki/Plane_Align) ==========
 					case "plane_align":
 						if (((l.Args[0] == 1) || (l.Args[1] == 1)) && (l.Front != null))
@@ -1422,19 +1427,40 @@ namespace CodeImp.DoomBuilder.BuilderModes
 
 		private void MakeThingAnchorSlope(Sector sector, int group, bool floor)
 		{
+			SectorData sd = GetSectorData(sector);
+
+			// find all related sidedefs (including those of tagged sectors)
+			List<Sidedef> sidedefs = new List<Sidedef>(sector.Sidedefs);
+			foreach (Sector otherSector in sd.TargetExtraFloors)
+				sidedefs.AddRange(otherSector.Sidedefs);
+
+			RectangleF bbox = sd
+				.TargetExtraFloors
+				.Append(sector)
+				.Select(sr => sr.BBox)
+				.Aggregate((a, b) => RectangleF.Union(a, b));
+			// add some space for anchor error
+			bbox.Inflate(256, 256);
+
 			// find our slope anchors
-			List<EffectThingAnchorSlope.Anchor> possibleAnchors = sector.Sidedefs
+			List<EffectThingAnchorSlope.Anchor> possibleAnchors = sector
+				.Sidedefs
+				.Concat(
+					sd
+						.TargetExtraFloors
+						.SelectMany(innerSector => innerSector.Sidedefs)
+				)
 				.Select(sidedef => sidedef.IsFront ? sidedef.Line.End : sidedef.Line.Start)
 				.Select(vertex => {
-					double distance;
-					Thing anchor = FindClosestAnchorTo(vertex, floor ? 777 : 778, group, sector, out distance);
-
-					return new EffectThingAnchorSlope.Anchor
+					EffectThingAnchorSlope.Anchor anchor = new EffectThingAnchorSlope.Anchor
 					{
-						thing = anchor,
-						closeness = distance,
-						snappedPosition = vertex.Position,
+						vertex = vertex,
 					};
+
+					double distance;
+					anchor.thing = FindClosestAnchorTo(vertex, floor ? 777 : 778, group, bbox, out distance);
+					anchor.closeness = distance;
+					return anchor;
 				})
 				.ToList();
 
@@ -1465,9 +1491,9 @@ namespace CodeImp.DoomBuilder.BuilderModes
 				}
 
 				// Preserve clockwise winding
-				Vector3D a = anchors[0].snappedPosition;
-				Vector3D b = anchors[1].snappedPosition;
-				Vector3D c = anchors[2].snappedPosition;
+				Vector3D a = anchors[0].vertex.Position;
+				Vector3D b = anchors[1].vertex.Position;
+				Vector3D c = anchors[2].vertex.Position;
 
 				if (Vector3D.CrossProduct(b - a, c - a).z < 0)
 				{
@@ -1476,18 +1502,9 @@ namespace CodeImp.DoomBuilder.BuilderModes
 					anchors[2] = temp;
 				}
 
-				SectorData sd = GetSectorData(sector);
+				General.ErrorLogger.Add(ErrorType.Warning, "sector " + sector.Index + " sidedef count: " + sidedefs.Count);
 				sd.AddEffectThingAnchorSlope(anchors.ToList(), floor);
 			}
-		}
-
-		private Thing FindClosestAnchorTo(Vertex pos, int thingType, int group, Sector sector, out double distance)
-		{
-			RectangleF bbox = sector.BBox;
-			// add some space for error
-			bbox.Inflate(256, 256);
-
-			return FindClosestAnchorTo(pos, thingType, group, bbox, out distance);
 		}
 
 		/// <summary>

@@ -15,7 +15,7 @@ namespace CodeImp.DoomBuilder.BuilderModes
 		{
 			public Thing thing;
 			public double closeness;
-			public Vector2D snappedPosition;
+			public Vertex vertex;
 
 			/// <summary>
 			/// Gets the final, computed position of the anchor.
@@ -27,15 +27,17 @@ namespace CodeImp.DoomBuilder.BuilderModes
 			/// <returns>The anchor position.</returns>
 			public Vector3D GetPosition(bool floor)
 			{
-				Vector3D position = snappedPosition;
+				Vector3D position = vertex.Position;
 				position.z = thing.Position.z;
 
 				if (thing.Sector != null)
 				{
-					if (floor)
-						position.z += thing.Sector.FloorHeight;
+					// FIXME: need to create a configurable special for this,
+					// though for now, hardcoding works
+					if (thing.IsFlagSet("flip"))
+						position.z = thing.Sector.CeilHeight - position.z;
 					else
-						position.z += thing.Sector.CeilHeight;
+						position.z += thing.Sector.FloorHeight;
 				}
 				
 				return position;

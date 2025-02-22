@@ -1502,7 +1502,6 @@ namespace CodeImp.DoomBuilder.BuilderModes
 					anchors[2] = temp;
 				}
 
-				General.ErrorLogger.Add(ErrorType.Warning, "sector " + sector.Index + " sidedef count: " + sidedefs.Count);
 				sd.AddEffectThingAnchorSlope(anchors.ToList(), floor);
 			}
 		}

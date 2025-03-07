@@ -4,12 +4,12 @@
 /*
  * Copyright (c) 2007 Pascal vd Heiden, www.codeimp.com
  * This program is released under GNU General Public License
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  */
 
 #endregion
@@ -34,9 +34,9 @@ namespace CodeImp.DoomBuilder.IO
 
 		// Name of the UDMF configuration file
 		private const string UDMF_UI_CONFIG_NAME = "UDMF_UI.cfg";
-		
+
 		#endregion
-		
+
 		#region ================== Constructor / Disposer
 
 		// Constructor
@@ -46,7 +46,7 @@ namespace CodeImp.DoomBuilder.IO
 			{
 				// Make configuration
 				Configuration config = new Configuration();
-				
+
 				//mxd. Find a resource named UDMF_UI.cfg
 				string[] resnames = General.ThisAssembly.GetManifestResourceNames();
 				foreach(string rn in resnames)
@@ -57,7 +57,7 @@ namespace CodeImp.DoomBuilder.IO
 						// Get a stream from the resource
 						Stream udmfcfg = General.ThisAssembly.GetManifestResourceStream(rn);
 						StreamReader udmfcfgreader = new StreamReader(udmfcfg, Encoding.ASCII);
-						
+
 						// Load configuration from stream
 						config.InputConfiguration(udmfcfgreader.ReadToEnd());
 						Dictionary<string, MapElementType> elements = new Dictionary<string, MapElementType>
@@ -69,19 +69,19 @@ namespace CodeImp.DoomBuilder.IO
 																		  { "thing", MapElementType.THING }
 						                                              };
 
-						foreach(KeyValuePair<string, MapElementType> group in elements) 
+						foreach(KeyValuePair<string, MapElementType> group in elements)
 						{
 							IDictionary dic = config.ReadSetting("uifields." + group.Key, new Hashtable());
 
 							Dictionary<string, UniversalType> values = new Dictionary<string, UniversalType>(StringComparer.Ordinal);
-							foreach(DictionaryEntry de in dic) 
+							foreach(DictionaryEntry de in dic)
 							{
 								values.Add(de.Key.ToString(), (UniversalType)de.Value);
 							}
 
 							uifields.Add(group.Value, values);
 						}
-						
+
 						// Done
 						udmfcfgreader.Dispose();
 						break;
@@ -127,26 +127,26 @@ namespace CodeImp.DoomBuilder.IO
 		public override int MinEffect { get { return int.MinValue; } }
 		public override int MaxBrightness { get { return int.MaxValue; } }
 		public override int MinBrightness { get { return int.MinValue; } }
-		public override int MaxThingType { get { return short.MaxValue; } } //mxd. Editor numbers must be in [1 .. 32767] range
+		public override int MaxThingType { get { return ushort.MaxValue; } } //mxd. Editor numbers must be in [1 .. 65535] range
 		public override int MinThingType { get { return 1; } } //mxd
 		public override float MaxCoordinate { get { return short.MaxValue; } } //mxd. UDMF maps are still bounded to -32768 .. 32767 range
 		public override float MinCoordinate { get { return short.MinValue; } } //mxd
 		public override int MaxThingAngle { get { return int.MaxValue; } }
 		public override int MinThingAngle { get { return int.MinValue; } }
 		public override Dictionary<MapElementType, Dictionary<string, UniversalType>> UIFields { get { return uifields; } } //mxd
-		
+
 		#endregion
 
 		#region ================== Reading
-		
+
 		// This reads a map from the file and returns a MapSet
 		public override MapSet Read(MapSet map, string mapname)
 		{
 			UniversalStreamReader udmfreader = new UniversalStreamReader(uifields); //mxd
-			
+
 			// Find the index where first map lump begins
 			int firstindex = wad.FindLumpIndex(mapname) + 1;
-			
+
 			// Get the TEXTMAP lump from wad file
 			Lump lump = wad.FindLump("TEXTMAP", firstindex);
 			if(lump == null) throw new Exception("Could not find required lump TEXTMAP!");
@@ -155,11 +155,11 @@ namespace CodeImp.DoomBuilder.IO
 			lump.Stream.Seek(0, SeekOrigin.Begin);
 			udmfreader.SetKnownCustomTypes = false;
 			udmfreader.Read(map, lump.Stream);
-			
+
 			// Return result
 			return map;
 		}
-		
+
 		#endregion
 
 		#region ================== Writing
@@ -168,7 +168,7 @@ namespace CodeImp.DoomBuilder.IO
 		public override void Write(MapSet map, string mapname, int position)
 		{
 			UniversalStreamWriter udmfwriter = new UniversalStreamWriter();
-			
+
 			// Write map to memory stream
 			MemoryStream memstream = new MemoryStream();
 			memstream.Seek(0, SeekOrigin.Begin);
@@ -188,8 +188,7 @@ namespace CodeImp.DoomBuilder.IO
 			// Done
 			memstream.Dispose();
 		}
-		
+
 		#endregion
 	}
 }
-

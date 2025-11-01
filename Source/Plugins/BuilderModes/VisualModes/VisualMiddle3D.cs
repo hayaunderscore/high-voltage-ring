@@ -162,7 +162,8 @@ namespace CodeImp.DoomBuilder.BuilderModes
 			Vector2D tsz = new Vector2D(Math.Ceiling(base.Texture.ScaledWidth / tscale.x), Math.Ceiling(base.Texture.ScaledHeight / tscale.y));
 			
 			// Get texture offsets
-			Vector2D tof = new Vector2D(Sidedef.OffsetX, Sidedef.OffsetY) + new Vector2D(sourceside.OffsetX, sourceside.OffsetY);
+			//Vector2D tof = new Vector2D(Sidedef.OffsetX, Sidedef.OffsetY) + new Vector2D(sourceside.OffsetX, sourceside.OffsetY);
+			Vector2D tof = new Vector2D(Sidedef.OffsetX, 0.0f) + new Vector2D(0.0f, sourceside.OffsetY);
 
 			tof = tof + toffset1 + toffset2;
 
@@ -184,35 +185,59 @@ namespace CodeImp.DoomBuilder.BuilderModes
 			// We choose here.
 			double sourcetopheight = extrafloor.VavoomType ? sourceside.Sector.FloorHeight : sourceside.Sector.CeilHeight;
 			double sourcebottomheight = extrafloor.VavoomType ? sourceside.Sector.CeilHeight : sourceside.Sector.FloorHeight;
-			
+
 			// Determine texture coordinates plane as they would be in normal circumstances.
 			// We can then use this plane to find any texture coordinate we need.
 			// The logic here is the same as in the original VisualMiddleSingle (except that
 			// the values are stored in a TexturePlane)
 			// NOTE: I use a small bias for the floor height, because if the difference in
 			// height is 0 then the TexturePlane doesn't work!
-			TexturePlane tp = new TexturePlane();
-			double floorbias = (sourcetopheight == sourcebottomheight) ? 1.0f : 0.0f;
+			Vector3D vlt, vlb, vrt, vrb;
+			Vector2D tlt, tlb, trt, trb;
+			bool lowerunpegged = sourceside.Line.IsFlagSet(General.Map.Config.LowerUnpeggedFlag);
+			bool slopeskew = sourceside.Line.IsFlagSet(General.Map.Config.SlopeSkewFlag);
 
-			tp.trb.x = tp.tlt.x + Math.Round(Sidedef.Line.Length); //mxd. (G)ZDoom snaps texture coordinates to integral linedef length
-			tp.trb.y = tp.tlt.y + (sourcetopheight - sourcebottomheight) + floorbias;
-			
+			double topheight = slopeskew ? extrafloor.Ceiling.plane.GetZ(vl) : sourcetopheight;
+			double bottomheight = slopeskew ? extrafloor.Floor.plane.GetZ(vl) : sourcebottomheight;
+			double topheight2 = slopeskew ? extrafloor.Ceiling.plane.GetZ(vr) : sourcetopheight;
+			double bottomheight2 = slopeskew ? extrafloor.Floor.plane.GetZ(vr) : sourcebottomheight;
+			//float floorbias = (topheight == bottomheight) ? 1.0f : 0.0f;
+			//float floorbias2 = (topheight2 == bottomheight2) ? 1.0f : 0.0f;
+
+			tlt.x = tlb.x = 0;
+			trt.x = trb.x = Sidedef.Line.Length;
+			// For SRB2, invert Lower Unpegged behavior for non-skewed 3D floors
+			tlt.y = !(lowerunpegged ^ slopeskew) ? 0 : -(topheight - bottomheight);
+			trt.y = !(lowerunpegged ^ slopeskew) ? 0 : -(topheight2 - bottomheight2);
+			tlb.y = !(!lowerunpegged ^ slopeskew) ? 0 : (topheight - bottomheight);
+			trb.y = !(!lowerunpegged ^ slopeskew) ? 0 : (topheight2 - bottomheight2);
+
 			// Apply texture offset
-			tp.tlt += tof;
-			tp.trb += tof;
-			
+			tlt += tof;
+			tlb += tof;
+			trb += tof;
+			trt += tof;
+
 			// Transform pixel coordinates to texture coordinates
-			tp.tlt /= tsz;
-			tp.trb /= tsz;
-			
-			// Left top and right bottom of the geometry that
-			tp.vlt = new Vector3D(vl.x, vl.y, sourcetopheight);
-			tp.vrb = new Vector3D(vr.x, vr.y, sourcebottomheight + floorbias);
-			
-			// Make the right-top coordinates
-			tp.trt = new Vector2D(tp.trb.x, tp.tlt.y);
-			tp.vrt = new Vector3D(tp.vrb.x, tp.vrb.y, tp.vlt.z);
-			
+			tlt /= tsz;
+			tlb /= tsz;
+			trb /= tsz;
+			trt /= tsz;
+
+			// Geometry coordinates
+			vlt = new Vector3D(vl.x, vl.y, topheight);
+			vlb = new Vector3D(vl.x, vl.y, bottomheight);
+			vrb = new Vector3D(vr.x, vr.y, bottomheight2);
+			vrt = new Vector3D(vr.x, vr.y, topheight2);
+
+			TexturePlane tp = new TexturePlane();
+			tp.tlt = lowerunpegged ? tlb : tlt;
+			tp.trb = trb;
+			tp.trt = trt;
+			tp.vlt = lowerunpegged ? vlb : vlt;
+			tp.vrb = vrb;
+			tp.vrt = vrt;
+
 			//mxd. Get ceiling and floor heights. Use our and neighbour sector's data
 			SectorData sdo = mode.GetSectorData(Sidedef.Other.Sector);
 

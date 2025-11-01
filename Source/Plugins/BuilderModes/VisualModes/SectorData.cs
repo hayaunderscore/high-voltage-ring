@@ -227,6 +227,13 @@ namespace CodeImp.DoomBuilder.BuilderModes
 			alleffects.Add(e);
 		}
 
+		// Ring Racers thing anchor slope effect
+		public void AddEffectThingAnchorSlope(List<EffectThingAnchorSlope.Anchor> anchors, bool slopefloor)
+		{
+			EffectThingAnchorSlope e = new EffectThingAnchorSlope(this, anchors, slopefloor);
+			alleffects.Add(e);
+		}
+
 		//mxd. Add UDMF vertex offset effect
 		public void AddEffectVertexOffset() 
 		{

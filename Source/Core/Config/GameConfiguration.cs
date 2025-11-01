@@ -79,6 +79,8 @@ namespace CodeImp.DoomBuilder.Config
 		private readonly string lowerunpeggedflag;
 		private readonly string pegmidtextureflag;
 		private readonly string flipflag;
+		private readonly string slopeskewflag;
+		private readonly string nomidtextureskewflag;
 		private readonly bool mixtexturesflats;
 		private readonly bool generalizedactions;
 		private readonly bool generalizedeffects;
@@ -244,6 +246,8 @@ namespace CodeImp.DoomBuilder.Config
 		public string LowerUnpeggedFlag { get { return lowerunpeggedflag; } }
 		public string PegMidtextureFlag { get { return pegmidtextureflag; } }
 		public string FlipFlag { get { return flipflag; }}
+		public string SlopeSkewFlag { get { return slopeskewflag; } }
+		public string NoMidtextureSkewFlag { get { return nomidtextureskewflag; } }
 		public bool MixTexturesFlats { get { return mixtexturesflats; } }
 		public bool GeneralizedActions { get { return generalizedactions; } }
 		public bool GeneralizedEffects { get { return generalizedeffects; } }
@@ -523,6 +527,10 @@ namespace CodeImp.DoomBuilder.Config
 				pegmidtextureflag = ((int)obj == 0) ? lowerunpeggedflag : ((int)obj).ToString(CultureInfo.InvariantCulture);
 			else
 				pegmidtextureflag = obj.ToString();
+			obj = cfg.ReadSettingObject("slopeskewflag", 0);
+			if (obj is int) slopeskewflag = ((int)obj).ToString(CultureInfo.InvariantCulture); else slopeskewflag = obj.ToString();
+			obj = cfg.ReadSettingObject("nomidtextureskewflag", 0);
+			if (obj is int) nomidtextureskewflag = ((int)obj).ToString(CultureInfo.InvariantCulture); else nomidtextureskewflag = obj.ToString();
 
 			// Same thing with thing flags
 			obj = cfg.ReadSettingObject("flipflag", 0);

@@ -33,6 +33,7 @@ using CodeImp.DoomBuilder.Config;
 using CodeImp.DoomBuilder.GZBuilder.Data;
 using CodeImp.DoomBuilder.Types;
 using CodeImp.DoomBuilder.Data;
+using System.Drawing;
 
 #endregion
 
@@ -1068,6 +1069,11 @@ namespace CodeImp.DoomBuilder.BuilderModes
 						break;
 					}
 
+					// ========== Create Anchor Based Slope (777) (see https://ringracers.miraheze.org/wiki/Create_Anchor-Based_Slope) =========
+					case "anchor_slope":
+						slopelinedefpass[0].Add(l);
+						break;
+
 					// ========== Sector 3D floor (160) (see http://zdoom.org/wiki/Sector_Set3dFloor) ==========
 					case "sector_set3dfloor":
 						if(l.Front != null)
@@ -1197,6 +1203,27 @@ namespace CodeImp.DoomBuilder.BuilderModes
 
 				switch (General.Map.Config.LinedefActions[l.Action].Id.ToLowerInvariant())
 				{
+					// ========== Create Anchor Based Slope (777) (see https://ringracers.miraheze.org/wiki/Create_Anchor-Based_Slope) =========
+					case "anchor_slope":
+						Sector sector;
+
+						if (((l.Args[1] & 4) > 0) && l.Back != null)
+							sector = l.Back.Sector;
+						else if (l.Front != null)
+							sector = l.Front.Sector;
+						else
+							// No valid sector found, get me outta here!
+							break;
+
+						bool slopeFloor = (l.Args[0] & 1) > 0;
+						bool slopeCeiling = (l.Args[0] & 2) > 0;
+
+						if (slopeFloor)
+							MakeThingAnchorSlope(sector, l.Args[2], true);
+						if (slopeCeiling)
+							MakeThingAnchorSlope(sector, l.Args[2], false);
+						break;
+	
 					// ========== Plane Align (181) (see http://zdoom.org/wiki/Plane_Align) ==========
 					case "plane_align":
 						if (((l.Args[0] == 1) || (l.Args[1] == 1)) && (l.Front != null))
@@ -1396,6 +1423,129 @@ namespace CodeImp.DoomBuilder.BuilderModes
 			vertexslopehandles.Clear();
 
 			BuildSlopeHandles(General.Map.Map.Sectors.ToList());
+		}
+
+		private void MakeThingAnchorSlope(Sector sector, int group, bool floor)
+		{
+			SectorData sd = GetSectorData(sector);
+
+			// find all related sidedefs (including those of tagged sectors)
+			List<Sidedef> sidedefs = new List<Sidedef>(sector.Sidedefs);
+			foreach (Sector otherSector in sd.TargetExtraFloors)
+				sidedefs.AddRange(otherSector.Sidedefs);
+
+			RectangleF bbox = sd
+				.TargetExtraFloors
+				.Append(sector)
+				.Select(sr => sr.BBox)
+				.Aggregate((a, b) => RectangleF.Union(a, b));
+			// add some space for anchor error
+			bbox.Inflate(256, 256);
+
+			// find our slope anchors
+			List<EffectThingAnchorSlope.Anchor> possibleAnchors = sector
+				.Sidedefs
+				.Concat(
+					sd
+						.TargetExtraFloors
+						.SelectMany(innerSector => innerSector.Sidedefs)
+				)
+				.Select(sidedef => sidedef.IsFront ? sidedef.Line.End : sidedef.Line.Start)
+				.Select(vertex => {
+					EffectThingAnchorSlope.Anchor anchor = new EffectThingAnchorSlope.Anchor
+					{
+						vertex = vertex,
+					};
+
+					double distance;
+					anchor.thing = FindClosestAnchorTo(vertex, floor ? 777 : 778, group, bbox, out distance);
+					anchor.closeness = distance;
+					return anchor;
+				})
+				.ToList();
+
+			// sort by distance
+			possibleAnchors.Sort((a, b) => a.closeness.CompareTo(b.closeness));
+
+			// remove all duplicates
+			EffectThingAnchorSlope.Anchor[] anchors = new EffectThingAnchorSlope.Anchor[3];
+			int anchorsFound = 0;
+
+			foreach (EffectThingAnchorSlope.Anchor anchor in possibleAnchors)
+			{
+				if (!anchors.Any(otherAnchor => otherAnchor.thing == anchor.thing))
+					anchors[anchorsFound++] = anchor;
+
+				if (anchorsFound >= 3)
+					break;
+			}
+
+			// reutrn early if we failed to fill it up
+			if (anchorsFound >= 3)
+			{
+				// make sure our things update our sectors
+				foreach (EffectThingAnchorSlope.Anchor anchor in anchors)
+				{
+					ThingData thing = GetThingData(anchor.thing);
+					thing.AddUpdateSector(sector, true);
+				}
+
+				// Preserve clockwise winding
+				Vector3D a = anchors[0].vertex.Position;
+				Vector3D b = anchors[1].vertex.Position;
+				Vector3D c = anchors[2].vertex.Position;
+
+				if (Vector3D.CrossProduct(b - a, c - a).z < 0)
+				{
+					EffectThingAnchorSlope.Anchor temp = anchors[1];
+					anchors[1] = anchors[2];
+					anchors[2] = temp;
+				}
+
+				sd.AddEffectThingAnchorSlope(anchors.ToList(), floor);
+			}
+		}
+
+		/// <summary>
+		/// Tries to find the closest anchor to a point.
+		/// </summary>
+		/// <param name="pos">The position of the vertex.</param>
+		/// <param name="group">The group to check</param>
+		/// <returns>The thing anchor, or <code>null</code> if none was found.</returns>
+		private Thing FindClosestAnchorTo(Vertex pos, int thingType, int group, RectangleF bbox, out double distance)
+		{
+			double closestDistance = 0;
+			Thing closestAnchor = null;
+
+			// Find closest anchors
+			foreach (VisualBlockEntry block in blockmap.GetBlocks(bbox))
+			{
+				foreach (Thing t in block.Things)
+				{
+					if (t.Type != thingType) continue;
+					if (t.ThingArgs[0] != group) continue;
+
+					if (closestAnchor == null)
+					{
+						// implicitly add anchor as first
+						closestAnchor = t;
+						closestDistance = Vector2D.DistanceSq(t.Position, pos.Position);
+					}
+					else
+					{
+						// check if our distance is smaller
+						double nextDistance = Vector2D.DistanceSq(t.Position, pos.Position);
+						if (nextDistance < closestDistance)
+						{
+							closestAnchor = t;
+							closestDistance = nextDistance;
+						}
+					}
+				}
+			}
+
+			distance = closestDistance;
+			return closestAnchor;
 		}
 
 		private void BuildSlopeHandles(List<Sector> sectors)

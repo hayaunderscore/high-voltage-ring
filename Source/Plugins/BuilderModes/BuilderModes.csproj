@@ -507,6 +507,7 @@
     <Compile Include="VisualModes\EffectThingSlope.cs" />
     <Compile Include="VisualModes\EffectSRB2ThingVertexSlope.cs" />
     <Compile Include="VisualModes\EffectThingVertexSlope.cs" />
+    <Compile Include="VisualModes\EffectThingAnchorSlope.cs" />
     <Compile Include="VisualModes\EffectTransferCeilingBrightness.cs" />
     <Compile Include="VisualModes\EffectTransferFloorBrightness.cs" />
     <Compile Include="VisualModes\EffectUDMFVertexOffset.cs" />

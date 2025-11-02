@@ -6,12 +6,12 @@ using CodeImp.DoomBuilder;
 // General Information about an assembly is controlled through the following 
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
-[assembly: AssemblyTitle("Ultimate Doom Builder")]
-[assembly: AssemblyDescription("ZDoom, GZDoom and Zandronum map editor (can be used for Vanilla/Boom mapping too!)")]
+[assembly: AssemblyTitle("High Voltage Ring")]
+[assembly: AssemblyDescription("Map Editor for Dr. Robotnik's Ring Racers")]
 [assembly: AssemblyConfiguration("")]
-[assembly: AssemblyCompany("CodeImp, MaxED, ZZYZX, boris, dpJudas and others")]
-[assembly: AssemblyProduct("Ultimate Doom Builder")]
-[assembly: AssemblyCopyright("Copyright © 2007, 2016, 2017-2019")]
+[assembly: AssemblyCompany("CodeImp, MaxED, ZZYZX, boris, dpJudas, Kart Krew Dev, and others")]
+[assembly: AssemblyProduct("High Voltage Ring")]
+[assembly: AssemblyCopyright("Copyright © 2007, 2016, 2017-2019, 2024-2025")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 
@@ -30,6 +30,6 @@ using CodeImp.DoomBuilder;
 //      Build Number
 //      Revision
 //
-[assembly: AssemblyVersion("3.0.0.4013")]
+[assembly: AssemblyVersion("3.1.0.4078")]
 [assembly: NeutralResourcesLanguageAttribute("en")]
-[assembly: AssemblyHash("48d37de")]
+[assembly: AssemblyHash("6503c23")]

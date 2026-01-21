@@ -6,6 +6,8 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using FastColoredTextBoxNS;
+using CodeImp.DoomBuilder;
 
 #if NO_SCINTILLA
 
@@ -281,7 +283,7 @@ namespace ScintillaNET
 
 	public class Scintilla : UserControl
 	{
-		TextBox textbox;
+        FastColoredTextBox fctb;
 
 		public Scintilla()
 		{
@@ -291,19 +293,34 @@ namespace ScintillaNET
 			Markers = new MarkerCollection();
 			Indicators = new IndicatorCollection();
 
-			textbox = new TextBox();
-			textbox.Location = new Point(0, 0);
-			textbox.Multiline = true;
-			textbox.Font = new Font(FontFamily.GenericMonospace, 10.0f);
+            fctb = new FastColoredTextBox();
+            fctb.Location = new Point(0, 0);
+            fctb.Multiline = true;
+            fctb.Font = new Font(new FontFamily(General.Settings.ScriptFontName), General.Settings.ScriptFontSize);
+            fctb.Language = Language.ACS; // TODO
+            fctb.BackColor = General.Colors.ScriptBackground.ToColor();
+            fctb.LineNumberColor = General.Colors.LineNumbers.ToColor();
+            // string style
+            ((TextStyle)fctb.SyntaxHighlighter.BrownStyle).ForeBrush = new SolidBrush(General.Colors.Properties.ToColor());
+            // comment style
+            ((TextStyle)fctb.SyntaxHighlighter.GreenStyle).ForeBrush = new SolidBrush(General.Colors.Comments.ToColor());
+            // number style
+            ((TextStyle)fctb.SyntaxHighlighter.MagentaStyle).ForeBrush = new SolidBrush(General.Colors.Constants.ToColor());
+            // keyword style
+            ((TextStyle)fctb.SyntaxHighlighter.KeywordStyle).ForeBrush = new SolidBrush(General.Colors.Keywords.ToColor());
+            // comment tag style
+            ((TextStyle)fctb.SyntaxHighlighter.GrayStyle).ForeBrush = new SolidBrush(General.Colors.Comments.ToColor());
+            // functions style
+            ((TextStyle)fctb.SyntaxHighlighter.MaroonStyle).ForeBrush = new SolidBrush(General.Colors.Literals.ToColor());
 
-			Controls.Add(textbox);
-			Size = textbox.PreferredSize;
+            Controls.Add(fctb);
+			Size = fctb.PreferredSize;
 		}
 
 		protected override void OnResize(EventArgs e)
         {
 			base.OnResize(e);
-			textbox.Size = Size;
+			fctb.Size = Size;
         }
 
 		public const int InvalidPosition = -1;
@@ -311,7 +328,7 @@ namespace ScintillaNET
 		[DefaultValue(BorderStyle.Fixed3D)]
 		[Category("Appearance")]
 		[Description("Indicates whether the control should have a border.")]
-		public new BorderStyle BorderStyle { get { return textbox.BorderStyle; } set { textbox.BorderStyle = value; } }
+		public new BorderStyle BorderStyle { get { return fctb.BorderStyle; } set { fctb.BorderStyle = value; } }
 
 		[DefaultValue(1)]
 		[Category("Caret")]
@@ -358,9 +375,9 @@ namespace ScintillaNET
 		[Description("The order of words in an autocompletion list.")]
 		public Order AutoCOrder { get; set; }
 
-		public override string Text { get { return textbox.Text; } set { textbox.Text = value.Replace("\r\n", "\n").Replace("\n", "\r\n"); } }
-		public int TextLength { get { return textbox.TextLength; } }
-		public int GetCharAt(int position) { return textbox.Text[position]; }
+		public override string Text { get { return fctb.Text; } set { fctb.Text = value.Replace("\r\n", "\n").Replace("\n", "\r\n"); } }
+		public int TextLength { get { return fctb.TextLength; } }
+		public int GetCharAt(int position) { return fctb.Text[position]; }
 		public int CurrentPosition { get; set; }
 		public int CurrentLine { get; private set; }
 		public int IndicatorCurrent { get; set; }
@@ -371,15 +388,15 @@ namespace ScintillaNET
 		public bool AutoCActive { get; private set; }
 		public bool CallTipActive { get; private set; }
 		public Lexer Lexer { get; set; }
-		public int SelectionStart { get { return textbox.SelectionStart; } set { textbox.SelectionStart = value; } }
-		public int SelectionEnd { get { return textbox.SelectionStart + textbox.SelectionLength; } set { textbox.SelectionLength = SelectionStart - value; } }
-		public string SelectedText { get { return textbox.SelectedText; } }
+		public int SelectionStart { get { return fctb.SelectionStart; } set { fctb.SelectionStart = value; } }
+		public int SelectionEnd { get { return fctb.SelectionStart + fctb.SelectionLength; } set { fctb.SelectionLength = SelectionStart - value; } }
+		public string SelectedText { get { return fctb.SelectedText; } }
 		public int TabWidth { get; set; }
-		public bool ReadOnly { get { return textbox.ReadOnly; } set { textbox.ReadOnly = value; } }
-		public bool CanUndo { get { return textbox.CanUndo; } }
-		public bool CanRedo { get { return false; } }
+		public bool ReadOnly { get { return fctb.ReadOnly; } set { fctb.ReadOnly = value; } }
+		public bool CanUndo { get { return fctb.UndoEnabled; } }
+		public bool CanRedo { get { return fctb.RedoEnabled; } }
 		public bool CanPaste { get { return true; } }
-		public bool Modified { get { return textbox.Modified; } }
+		public bool Modified { get { return fctb.IsChanged; } }
 		public Color CaretForeColor { get; set; }
 		public int CaretPeriod { get; set; }
 		public bool UseTabs { get; set; }
@@ -398,9 +415,9 @@ namespace ScintillaNET
 		public int WordEndPosition(int position, bool onlyWordCharacters) { return 0; }
 		public int LineFromPosition(int position) { return 0; }
 		public string GetWordFromPosition(int position) { return ""; }
-		public string GetTextRange(int position, int length) { return textbox.Text.Substring(position, length); }
-		public void SetEmptySelection(int pos) { textbox.DeselectAll(); }
-		public void ReplaceSelection(string text) { textbox.Text = textbox.Text.Substring(0, textbox.SelectionStart) + text + textbox.Text.Substring(textbox.SelectionStart + textbox.SelectionLength); }
+		public string GetTextRange(int position, int length) { return fctb.Text.Substring(position, length); }
+		public void SetEmptySelection(int pos) { fctb.ClearSelected(); }
+		public void ReplaceSelection(string text) { fctb.Text = fctb.Text.Substring(0, fctb.SelectionStart) + text + fctb.Text.Substring(fctb.SelectionStart + fctb.SelectionLength); }
 		public int PointXFromPosition(int pos) { return 0; }
 		public int PointYFromPosition(int pos) { return 0; }
 		public int CharPositionFromPointClose(int x, int y) { return 0; }
@@ -409,19 +426,19 @@ namespace ScintillaNET
 		public void MarkerDeleteAll(int marker) { }
 		public void IndicatorClearRange(int position, int length) { }
 		public void IndicatorFillRange(int position, int length) { }
-		public void EmptyUndoBuffer() { textbox.ClearUndo(); }
+		public void EmptyUndoBuffer() { fctb.ClearUndo(); }
 		public void BeginUndoAction() { }
 		public void EndUndoAction() { }
-		public void Undo() { textbox.Undo(); }
-		public void Redo() { }
-		public void Cut() { textbox.Cut(); }
-		public void Copy() { textbox.Copy(); }
-		public void Paste() { textbox.Paste(); }
-		public void SelectAll() { textbox.SelectAll(); }
-		public void DeleteRange(int position, int length) { }
+		public void Undo() { fctb.Undo(); }
+		public void Redo() { fctb.Redo(); }
+		public void Cut() { fctb.Cut(); }
+		public void Copy() { fctb.Copy(); }
+		public void Paste() { fctb.Paste(); }
+		public void SelectAll() { fctb.SelectAll(); }
+		public void DeleteRange(int position, int length) { fctb.Text = fctb.Text.Remove(position, length); }
 		public int SearchInTarget(string text) { return 0; }
-		public void InsertText(int position, string text) { textbox.Text = textbox.Text.Substring(0, position) + text + textbox.Text.Substring(position); }
-		public void SetSavePoint() { textbox.Modified = false; }
+		public void InsertText(int position, string text) { fctb.Text = fctb.Text.Substring(0, position) + text + fctb.Text.Substring(position); }
+		public void SetSavePoint() { fctb.IsChanged = false; }
 
 		public void RegisterRgbaImage(int type, Bitmap image) { }
 		public int TextWidth(int style, string text) { return 0; }

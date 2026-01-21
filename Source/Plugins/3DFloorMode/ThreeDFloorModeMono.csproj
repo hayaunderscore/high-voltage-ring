@@ -90,15 +90,12 @@
   <ItemGroup>
     <Reference Include="System" />
     <Reference Include="System.Core">
-      <RequiredTargetFramework>3.5</RequiredTargetFramework>
     </Reference>
     <Reference Include="System.Drawing" />
     <Reference Include="System.Windows.Forms" />
     <Reference Include="System.Xml.Linq">
-      <RequiredTargetFramework>3.5</RequiredTargetFramework>
     </Reference>
     <Reference Include="System.Data.DataSetExtensions">
-      <RequiredTargetFramework>3.5</RequiredTargetFramework>
     </Reference>
     <Reference Include="System.Data" />
     <Reference Include="System.Xml" />
@@ -234,16 +231,16 @@
   <ItemGroup>
     <ProjectReference Include="..\..\Core\BuilderMono.csproj">
       <Project>{818B3D10-F791-4C3F-9AF5-BB2D0079B63C}</Project>
-      <Name>Builder</Name>
+      <Name>BuilderMono</Name>
       <Private>False</Private>
     </ProjectReference>
     <ProjectReference Include="..\BuilderEffects\BuilderEffectsMono.csproj">
       <Project>{B859BE0F-A992-476D-A642-FA8EFE94AAA5}</Project>
-      <Name>BuilderEffects</Name>
+      <Name>BuilderEffectsMono</Name>
     </ProjectReference>
     <ProjectReference Include="..\BuilderModes\BuilderModesMono.csproj">
       <Project>{B42D5AA0-F9A6-4234-9C4B-A05B11A64851}</Project>
-      <Name>BuilderModes</Name>
+      <Name>BuilderModesMono</Name>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

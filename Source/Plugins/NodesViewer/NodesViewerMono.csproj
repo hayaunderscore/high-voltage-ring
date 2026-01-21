@@ -138,7 +138,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\Core\BuilderMono.csproj">
       <Project>{818B3D10-F791-4C3F-9AF5-BB2D0079B63C}</Project>
-      <Name>Builder</Name>
+      <Name>BuilderMono</Name>
       <Private>False</Private>
     </ProjectReference>
   </ItemGroup>

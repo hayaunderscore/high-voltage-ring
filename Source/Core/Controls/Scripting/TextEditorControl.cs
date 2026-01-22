@@ -413,7 +413,9 @@ namespace ScintillaNET
 
 		public int WordStartPosition(int position, bool onlyWordCharacters) { return 0; }
 		public int WordEndPosition(int position, bool onlyWordCharacters) { return 0; }
-		public int LineFromPosition(int position) { return 0; }
+		public int LineFromPosition(int position) {
+            return fctb.PositionToPlace(position).iLine;
+        }
 		public string GetWordFromPosition(int position) { return ""; }
 		public string GetTextRange(int position, int length) { return fctb.Text.Substring(position, length); }
 		public void SetEmptySelection(int pos) { fctb.ClearSelected(); }
@@ -421,7 +423,9 @@ namespace ScintillaNET
 		public int PointXFromPosition(int pos) { return 0; }
 		public int PointYFromPosition(int pos) { return 0; }
 		public int CharPositionFromPointClose(int x, int y) { return 0; }
-		public void ShowLines(int lineStart, int lineEnd) { }
+		public void ShowLines(int lineStart, int lineEnd) {
+            fctb.SetSelectedLine(lineStart);
+        }
 		public void GotoPosition(int position) { }
 		public void MarkerDeleteAll(int marker) { }
 		public void IndicatorClearRange(int position, int length) { }
@@ -436,7 +440,9 @@ namespace ScintillaNET
 		public void Paste() { fctb.Paste(); }
 		public void SelectAll() { fctb.SelectAll(); }
 		public void DeleteRange(int position, int length) { fctb.Text = fctb.Text.Remove(position, length); }
-		public int SearchInTarget(string text) { return 0; }
+		public int SearchInTarget(string text) {
+            return fctb.Text.IndexOf(text, TargetStart, this.SearchFlags == SearchFlags.MatchCase ? StringComparison.CurrentCulture : StringComparison.CurrentCultureIgnoreCase);
+        }
 		public void InsertText(int position, string text) { fctb.Text = fctb.Text.Substring(0, position) + text + fctb.Text.Substring(position); }
 		public void SetSavePoint() { fctb.IsChanged = false; }
 

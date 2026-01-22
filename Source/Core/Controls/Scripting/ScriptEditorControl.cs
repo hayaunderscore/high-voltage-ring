@@ -334,8 +334,10 @@ namespace CodeImp.DoomBuilder.Controls
 			handler = General.Types.GetScriptHandler(config.ScriptType);
 			handler.Initialize(this, config);
 
-			//mxd
-			functionbar.Enabled = (config.ScriptType != ScriptType.UNKNOWN);
+            //mxd
+#if !NO_SCINTILLA
+            functionbar.Enabled = (config.ScriptType != ScriptType.UNKNOWN);
+#endif
 
 			Configuration lexercfg = new Configuration();
 
@@ -816,12 +818,14 @@ namespace CodeImp.DoomBuilder.Controls
 		{
 			List<CompilerError> result = new List<CompilerError>();
 
+#if !NO_SCINTILLA
 			// Just clear the navigator when current tab has no text
 			if(scriptedit.Text.Length == 0)
 			{
 				functionbar.Items.Clear();
 				functionbar.Enabled = false;
-				return result;
+
+                return result;
 			}
 
 			// Store currently selected item name
@@ -855,13 +859,13 @@ namespace CodeImp.DoomBuilder.Controls
 
 				preventchanges = false;
 			}
-
-			return result;
+#endif
+            return result;
 		}
 
-		#endregion
+#endregion
 
-		#region ================== Utility methods
+#region ================== Utility methods
 
 		// This returns the ScriptStyleType for a given Scintilla style
 		internal ScriptStyleType GetScriptStyle(int scintillastyle)
@@ -1027,9 +1031,9 @@ namespace CodeImp.DoomBuilder.Controls
 			return base.ProcessCmdKey(ref msg, keydata);
 		}
 
-		#endregion
+#endregion
 		
-		#region ================== Events
+#region ================== Events
 		
 		// Layout needs to be re-organized
 		protected override void OnLayout(LayoutEventArgs e)
@@ -1037,7 +1041,7 @@ namespace CodeImp.DoomBuilder.Controls
 			base.OnLayout(e);
 
 			// With or without functions bar?
-			if(functionbar.Visible)
+			if(functionbar != null && functionbar.Visible)
 			{
 				scriptpanel.Top = functionbar.Bottom + 6;
 				scriptpanel.Height = this.ClientSize.Height - scriptpanel.Top;
@@ -1299,9 +1303,9 @@ namespace CodeImp.DoomBuilder.Controls
 			if(OnFunctionBarDropDown != null) OnFunctionBarDropDown(sender, e);
 		}
 		
-		#endregion
+#endregion
 
-		#region ================== Context menu Events
+#region ================== Context menu Events
 
 		private void contextmenu_Opening(object sender, System.ComponentModel.CancelEventArgs e)
 		{
@@ -1357,7 +1361,7 @@ namespace CodeImp.DoomBuilder.Controls
 			scriptedit.SelectAll();
 		}
 
-		#endregion
+#endregion
 
 	}
 }

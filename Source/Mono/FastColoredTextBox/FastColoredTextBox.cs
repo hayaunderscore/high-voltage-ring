@@ -2540,7 +2540,7 @@ namespace FastColoredTextBoxNS
                     /*
                     while (GetOpenClipboardWindow() != IntPtr.Zero)
                         Thread.Sleep(0);*/
-                    CloseClipboard();
+                    // CloseClipboard();
                     Clipboard.SetDataObject(data, true, 5, 100);
                 }
                 catch(ExternalException)

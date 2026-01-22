@@ -183,18 +183,25 @@ namespace CodeImp.DoomBuilder.Controls
 			// 
 			// scriptpanel
 			// 
-			this.scriptpanel.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom)
+			this.scriptpanel.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top)
 						| System.Windows.Forms.AnchorStyles.Left)
 						| System.Windows.Forms.AnchorStyles.Right)));
 			this.scriptpanel.Controls.Add(this.scriptedit);
-			this.scriptpanel.Location = new System.Drawing.Point(0, 27);
+            int scriptpanel_y = 27, scriptpanel_size = 381;
+#if NO_SCINTILLA
+            scriptpanel_y = 0;
+            scriptpanel_size = 381 + 27;
+#endif
+            this.scriptpanel.Location = new System.Drawing.Point(0, scriptpanel_y);
 			this.scriptpanel.Name = "scriptpanel";
-			this.scriptpanel.Size = new System.Drawing.Size(474, 381);
-			this.scriptpanel.TabIndex = 2;
-			// 
-			// functionbar
-			// 
-			this.functionbar.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left)
+			this.scriptpanel.Size = new System.Drawing.Size(474, scriptpanel_size);
+            this.scriptedit.Size = new System.Drawing.Size(474, scriptpanel_size);
+            this.scriptpanel.TabIndex = 2;
+            // 
+            // functionbar
+            // 
+#if !NO_SCINTILLA
+            this.functionbar.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left)
 						| System.Windows.Forms.AnchorStyles.Right)));
 			this.functionbar.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
 			this.functionbar.FormattingEnabled = true;
@@ -205,13 +212,16 @@ namespace CodeImp.DoomBuilder.Controls
 			this.functionbar.TabStop = false;
 			this.functionbar.SelectedIndexChanged += new System.EventHandler(this.functionbar_SelectedIndexChanged);
 			this.functionbar.DropDown += new System.EventHandler(this.functionbar_DropDown);
+#endif
 			// 
 			// ScriptEditorControl
 			// 
 			this.AutoScaleDimensions = new System.Drawing.SizeF(96F, 96F);
 			this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Dpi;
 			this.Controls.Add(this.scriptpanel);
+#if !NO_SCINTILLA
 			this.Controls.Add(this.functionbar);
+#endif
 			this.Name = "ScriptEditorControl";
 			this.Size = new System.Drawing.Size(474, 408);
 			this.contextmenu.ResumeLayout(false);
@@ -220,7 +230,7 @@ namespace CodeImp.DoomBuilder.Controls
 
 		}
 
-		#endregion
+#endregion
 
 		private ScintillaNET.Scintilla scriptedit;
 		private System.Windows.Forms.Panel scriptpanel;

@@ -729,7 +729,7 @@ namespace FastColoredTextBoxNS
                 new Regex(
                     @"\b(int|float|const|default|continue|return|bool|enum|if|for|break|goto|str|struct|else|do|function|suspend|fixed|sizeof|switch|while|script|terminate|void|static|case|until|net|restart|OPEN|ENTER|RESPAWN|DEATH|LAP|POSITION|OVERTIME|UFO|EMERALD|GAMEOVER|FINISH|global|world|special|print)\b|#region\b|#endregion\b|#nullable\b|#if\b|#elif\b|#else\b|#endif\b|#define\b|#undef\b|#error\b|#warning\b|#line\b|#pragma\b",
                     RegexCompiledOption);
-            ACSFunctionsRegex = new Regex(@"[a-zA-Z]+\([^\)]*\)(\.[^\)]*\))?", RegexOptions.Multiline | RegexCompiledOption);
+            ACSFunctionsRegex = new Regex(@"(?<!\S)(\w+)\(.*?\)", RegexOptions.Multiline | RegexCompiledOption);
         }
 
         public void InitStyleSchema(Language lang)
